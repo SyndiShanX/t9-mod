@@ -1,86 +1,73 @@
 #pragma once
 #include "common.hpp"
 
+#include <utility/nt.hpp>
 #include <MinHook.h>
 
 namespace Client::Memory {
-    template <typename P = void>
-    class MinHook {
-    public:
-        enum {
-            ENV_ALL,
-            ENV_CLIENT,
-            ENV_DEDICATED,
-            ENV_ONLINE
-        };
+	template <typename P = void>
+	class MinHook {
+	public:
+		MinHook(P* pointer = nullptr)
+			: m_DetourPointer(pointer)
+		{}
 
-        MinHook(P* pointer = nullptr, int environment = ENV_ALL)
-            : m_DetourPointer(pointer)
-            , m_Environment(environment)
-        {}
+		MinHook(const char* libName, const char* exportName) {
+			this->m_DetourPointer = Common::Utility::NT::Library(libName).GetProc<void*>(exportName);
+		}
 
-        bool Eligible() {
-            if (this->m_Environment != ENV_ALL) {
-                if (g_LaunchInfo.first == Common::GameLaunchType::DEDICATED && this->m_Environment != ENV_DEDICATED) {
-                    return false;
-                }
-                if (g_LaunchInfo.first != Common::GameLaunchType::DEDICATED && this->m_Environment != ENV_CLIENT) {
-                    return false;
-                }
-                if (g_LaunchInfo.first == Common::GameLaunchType::SP && this->m_Environment == ENV_ONLINE) {
-                    return false;
-                }
-            }
-            if (this->m_DetourPointer == nullptr) {
-                return false;
-            }
-            return true;
-        }
+		template <typename C, typename O>
+		void Hook(C* callback, O** original) {
+			if (this->m_DetourPointer == nullptr) {
+				return;
+			}
 
-        template <typename T>
-        void Hook() {
-            if (!this->Eligible()) {
-                return;
-            }
+			MH_CreateHook(this->m_DetourPointer, reinterpret_cast<void*>(callback), reinterpret_cast<void**>(original));
+			MH_EnableHook(this->m_DetourPointer);
+		}
 
-            MH_CreateHook(this->m_DetourPointer, &T::hkCallback, (void**)(&T::m_Original));
-            MH_EnableHook(this->m_DetourPointer);
+		template <typename T>
+		void Hook() {
+			if (this->m_DetourPointer == nullptr) {
+				return;
+			}
 
-            LOG("MinHook", DEBUG, "Hooked {}.", T::GetName());
-        }
+			MH_CreateHook(this->m_DetourPointer, &T::hkCallback, (void**)(&T::m_Original));
+			MH_EnableHook(this->m_DetourPointer);
 
-        template <typename T>
-        void Hook(std::uint32_t idx) {
-            if (!this->Eligible()) {
-                return;
-            }
+			LOG("MinHook", DEBUG, "Hooked {}.", T::GetName());
+		}
 
-            MH_CreateHook(VT_GET(this->m_DetourPointer, idx), &T::hkCallback, (void**)(&T::m_Original));
-            MH_EnableHook(VT_GET(this->m_DetourPointer, idx));
+		template <typename T>
+		void Hook(std::uint32_t idx) {
+			if (this->m_DetourPointer == nullptr) {
+				return;
+			}
 
-            LOG("MinHook", DEBUG, "Hooked {}. (VT: {})", T::GetName(), idx);
-        }
+			MH_CreateHook(VT_GET(this->m_DetourPointer, idx), &T::hkCallback, (void**)(&T::m_Original));
+			MH_EnableHook(VT_GET(this->m_DetourPointer, idx));
 
-        void Unhook() {
-            if (!this->Eligible()) {
-                return;
-            }
+			LOG("MinHook", DEBUG, "Hooked {}. (VT: {})", T::GetName(), idx);
+		}
 
-            MH_DisableHook(this->m_DetourPointer);
-            MH_RemoveHook(this->m_DetourPointer);
-        }
+		void Unhook() {
+			if (this->m_DetourPointer == nullptr) {
+				return;
+			}
 
-        void Unhook(std::uint32_t idx) {
-            if (!this->Eligible()) {
-                return;
-            }
+			MH_DisableHook(this->m_DetourPointer);
+			MH_RemoveHook(this->m_DetourPointer);
+		}
 
-            MH_DisableHook(VT_GET(this->m_DetourPointer, idx));
-            MH_RemoveHook(VT_GET(this->m_DetourPointer, idx));
-        }
-    private:
-        LPVOID m_DetourPointer;
-        DWORD m_VProtect;
-        int m_Environment;
-    };
+		void Unhook(std::uint32_t idx) {
+			if (this->m_DetourPointer == nullptr) {
+				return;
+			}
+
+			MH_DisableHook(VT_GET(this->m_DetourPointer, idx));
+			MH_RemoveHook(VT_GET(this->m_DetourPointer, idx));
+		}
+	private:
+		LPVOID m_DetourPointer;
+	};
 }

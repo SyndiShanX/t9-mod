@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include "game/game.hpp"
+#include "hooks/hook.hpp"
 #include <utility/nt.hpp>
 
 BOOL APIENTRY DllMain(HMODULE hMod, DWORD reason, PVOID) {
@@ -26,6 +27,11 @@ BOOL APIENTRY DllMain(HMODULE hMod, DWORD reason, PVOID) {
 				LOG("MainThread", INFO, "Pointers uninitialized.");
 			}
 
+			if (g_Hooks) {
+				g_Hooks.reset();
+				LOG("MainThread", INFO, "Hooks uninitialized.");
+			}
+
 			Common::g_LogService.reset();
 			return 0;
 		}, nullptr, 0, &g_MainThreadId);
@@ -47,6 +53,23 @@ void MainEntryPoint() {
 
 	g_Pointers = std::make_unique<Game::Pointers>();
 	LOG("MainThread", INFO, "Pointers initialized.");
+
+	g_Hooks = std::make_unique<Hook::Hooks>();
+	LOG("MainThread", INFO, "Hooks initialized.");
+
+	CreateThread(nullptr, 0, [](PVOID) -> DWORD {
+		LOG("Grand Theft Auto VII", DEBUG, "Waiting for Scr_Initialized to be like true or something");
+		while (!(*g_Pointers->m_Scr_Initialized)) {
+			std::this_thread::sleep_for(100ms);
+		}
+
+		LOG("Grand Theft Auto VII", DEBUG, "Scr_Initialized is like true or something now im gonna do some stuff");
+		g_Pointers->m_Dvar_SetBoolFromSource(*g_Pointers->m_Dvar_NoDW, true, 0);
+		g_Pointers->m_CL_Disconnect(0, false, "");
+
+		LOG("Grand Theft Auto VII", DEBUG, "Did some stuff, vaporizing now.");
+		return 0;
+	}, nullptr, 0, nullptr);
 }
 
 extern "C" __declspec(dllexport) int /* EDiscordResult */ /* DISCORD_API */ DiscordCreate(int /* DiscordVersion */ version, struct DiscordCreateParams* params, struct IDiscordCore** result) {

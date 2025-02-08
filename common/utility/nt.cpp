@@ -162,13 +162,13 @@ namespace Common::Utility::NT {
 			return nullptr;
 		}
 
-		const Library other_module(moduleName);
-		if (!other_module.IsValid()) {
+		const Library otherModule(moduleName);
+		if (!otherModule.IsValid()) {
 			return nullptr;
 		}
 
-		auto* const target_function = other_module.GetProc<void*>(procName);
-		if (!target_function) {
+		auto* const targetFunction = otherModule.GetProc<void*>(procName);
+		if (!targetFunction) {
 			return nullptr;
 		}
 
@@ -177,41 +177,50 @@ namespace Common::Utility::NT {
 			return nullptr;
 		}
 
-		auto* import_descriptor = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(this->GetPtr() + header->DataDirectory
+		auto* importDescriptor = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(this->GetPtr() + header->DataDirectory
 			[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
-		while (import_descriptor->Name) {
-			if (!_stricmp(reinterpret_cast<char*>(this->GetPtr() + import_descriptor->Name), moduleName.data())) {
-				auto* original_thunk_data = reinterpret_cast<PIMAGE_THUNK_DATA>(import_descriptor->
+		while (importDescriptor->Name) {
+			if (!_stricmp(reinterpret_cast<char*>(this->GetPtr() + importDescriptor->Name), moduleName.data())) {
+				auto* originalThunkData = reinterpret_cast<PIMAGE_THUNK_DATA>(importDescriptor->
 					OriginalFirstThunk + this->GetPtr());
-				auto* thunk_data = reinterpret_cast<PIMAGE_THUNK_DATA>(import_descriptor->FirstThunk + this->
+				auto* thunkData = reinterpret_cast<PIMAGE_THUNK_DATA>(importDescriptor->FirstThunk + this->
 					GetPtr());
 
-				while (original_thunk_data->u1.AddressOfData) {
-					if (thunk_data->u1.Function == reinterpret_cast<uint64_t>(target_function)) {
-						return reinterpret_cast<void**>(&thunk_data->u1.Function);
+				while (originalThunkData->u1.AddressOfData) {
+					if (thunkData->u1.Function == reinterpret_cast<uint64_t>(targetFunction)) {
+						return reinterpret_cast<void**>(&thunkData->u1.Function);
 					}
 
-					const size_t ordinal_number = original_thunk_data->u1.AddressOfData & 0xFFFFFFF;
+					const size_t ordinalNumber = originalThunkData->u1.AddressOfData & 0xFFFFFFF;
 
-					if (ordinal_number <= 0xFFFF) {
-						auto* proc = GetProcAddress(other_module.m_Module, reinterpret_cast<char*>(ordinal_number));
-						if (reinterpret_cast<void*>(proc) == target_function) {
-							return reinterpret_cast<void**>(&thunk_data->u1.Function);
+					if (ordinalNumber <= 0xFFFF) {
+						auto* proc = GetProcAddress(otherModule.m_Module, reinterpret_cast<char*>(ordinalNumber));
+						if (reinterpret_cast<void*>(proc) == targetFunction) {
+							return reinterpret_cast<void**>(&thunkData->u1.Function);
 						}
 					}
 
-					++original_thunk_data;
-					++thunk_data;
+					++originalThunkData;
+					++thunkData;
 				}
 
 				//break;
 			}
 
-			++import_descriptor;
+			++importDescriptor;
 		}
 
 		return nullptr;
+	}
+
+	bool Library::IsAddressInRange(std::size_t address) {
+		if (!this->m_Module) {
+			return false;
+		}
+
+		return address >= reinterpret_cast<std::size_t>(this->GetPtr())
+			&& address <= reinterpret_cast<std::size_t>(this->GetPtr()) + this->GetOptionalHeader()->SizeOfImage;
 	}
 
 	void RaiseHardException() {

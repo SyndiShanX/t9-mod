@@ -95,6 +95,8 @@ namespace Common::Utility::NT {
 		void** GetIATEntry(const std::string& moduleName, const std::string& procName) const;
 		void** GetIATEntry(const std::string& moduleName, const char* name) const;
 
+		bool IsAddressInRange(std::size_t address);
+
 	private:
 		HMODULE m_Module;
 	};

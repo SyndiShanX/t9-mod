@@ -1,16 +1,18 @@
 #pragma once
 #include "common.hpp"
+#include "engine/t9/Font_s.hpp"
+#include "engine/t9/enums/LobbyNetworkMode.hpp"
 
 namespace Client::Game::Functions {
-	using LoadImageAT = HANDLE(__stdcall)(HINSTANCE hInst, LPCSTR name, UINT type, int cx, int cy, UINT fuLoad);
-	using SetCursorPosT = BOOL(int x, int y);
-	using WS_CloseSocketT = int(__stdcall)(SOCKET s);
-	using WS_ConnectT = int(__stdcall)(SOCKET s, const sockaddr* name, int namelen);
-	using WS_GetHostByNameT = hostent * (__stdcall)(const char* name);
-	using WS_IoctlSocketT = int(__stdcall)(SOCKET s, int cmd, u_long* argp);
-	using WS_RecvT = int(__stdcall)(SOCKET s, char* buf, int len, int flags);
-	using WS_RecvFromT = int(__stdcall)(SOCKET s, char* buf, int len, int flags, sockaddr* from, int* fromlen);
-	using WS_SelectT = int(__stdcall)(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, timeval* timeout);
-	using WS_SendT = int(__stdcall)(SOCKET s, const char* buf, int len, int flags);
-	using WS_SendToT = int(__stdcall)(SOCKET s, const char* buf, int len, int flags, const sockaddr* to, int tolen);
+	using CL_DisconnectT = void(int localClientNum, bool deactivateClient, const char* message);
+	using CL_DrawTextPhysicalT = void(const char* text, int maxChars, T9::Font_s* font, float x, float y, float rotation, float xScale, float yScale, const float* color, int style, int padding);
+	using Com_SessionMode_SetNetworkModeT = void(int mode);
+	using Dvar_SetBoolFromSourceT = void(std::uintptr_t* dvar, bool value, int source);
+	using Dvar_ShowOverStackT = void();
+	using LiveUser_GetUserDataForControllerT = std::uintptr_t*(int controllerIndex);
+	using LobbyBase_SetNetworkModeT = void(T9::LobbyNetworkMode networkMode);
+	using Unk_SetScreenT = void(int screen, char a2);
+	using Unk_SetUsernameT = void(std::uintptr_t* _this, const char* username);
+
+	using RtlDispatchExceptionT = bool(PEXCEPTION_RECORD record, PCONTEXT ctx);
 }
