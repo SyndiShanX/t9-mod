@@ -49,22 +49,23 @@ namespace Client::HookPlate {
 
 	class EventHandlerStore {
 	public:
+		using EventHandlerCallback = void();
+
 		class EventHandler {
 		public:
-			template <typename T>
-			EventHandler(std::string name, std::uint64_t identifier, T* address, std::function<void()> callback)
+			EventHandler(std::string name, std::uintptr_t identifier, std::uintptr_t* address, EventHandlerCallback* callback)
 				: m_Name(name)
 				, m_Identifier(identifier)
-				, m_Address(reinterpret_cast<std::uint64_t*>(address))
+				, m_Address(address)
 				, m_Callback(callback)
 			{}
 
 			std::string m_Name;
-			std::uint64_t m_Identifier;
-			std::uint64_t* m_Address;
-			std::function<void()> m_Callback;
+			std::uintptr_t m_Identifier;
+			std::uintptr_t* m_Address;
+			EventHandlerCallback* m_Callback;
 
-			std::uint64_t m_Original = NULL;
+			std::uintptr_t m_Original = NULL;
 
 			bool IsActive() {
 				return this->m_Original != NULL;
@@ -89,7 +90,7 @@ namespace Client::HookPlate {
 			}
 		};
 
-		EventHandler* FindHandler(std::uint64_t identifier) {
+		EventHandler* FindHandler(std::uintptr_t identifier) {
 			auto it = std::find_if(this->m_Handlers.begin(), this->m_Handlers.end(), [identifier](const EventHandler& handler) {
 				return handler.m_Identifier == identifier;
 			});
@@ -101,16 +102,13 @@ namespace Client::HookPlate {
 		}
 
 		template <typename T>
-		void AddHandler(std::string name, std::uint64_t identifier, T* address, std::function<void()> callback) {
-			LOG("Handlers", DEBUG, "Adding handler {}", name);
-			EventHandler handler = EventHandler(name, identifier, address, callback);
-			LOG("Handlers", DEBUG, "Enabling handler {}", name);
+		void AddHandler(std::string name, std::uintptr_t identifier, T* address, EventHandlerCallback* callback) {
+			EventHandler handler = EventHandler(name, identifier, reinterpret_cast<std::uintptr_t*>(address), callback);
 			handler.Enable();
-			LOG("Handlers", DEBUG, "Pushing handler {}", name);
 			this->m_Handlers.push_back(handler);
 		}
 
-		void RemoveHandler(std::uint64_t identifier) {
+		void RemoveHandler(std::uintptr_t identifier) {
 			std::size_t idx = 0;
 			for (const auto& handler : this->m_Handlers) {
 				if (handler.m_Identifier == identifier) {
@@ -121,14 +119,14 @@ namespace Client::HookPlate {
 			}
 		}
 
-		void EnableHandler(std::uint64_t identifier) {
+		void EnableHandler(std::uintptr_t identifier) {
 			EventHandler* handler = this->FindHandler(identifier);
 			if (handler != nullptr) {
 				handler->Enable();
 			}
 		}
 
-		void DisableHandler(std::uint64_t identifier) {
+		void DisableHandler(std::uintptr_t identifier) {
 			EventHandler* handler = this->FindHandler(identifier);
 			if (handler != nullptr) {
 				handler->Disable();

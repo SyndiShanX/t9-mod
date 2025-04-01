@@ -4,6 +4,7 @@
 #include <Windows.h>
 
 #include <d3d11.h>
+#include <DbgHelp.h>
 #include <ErrorRep.h>
 #include <ExDisp.h>
 #include <MsHtmHst.h>
@@ -29,6 +30,9 @@
 #include <thread>
 #include <vector>
 
+#pragma intrinsic(_ReturnAddress)
+
+#pragma comment(lib, "DbgHelp.lib")
 #pragma comment(lib, "Faultrep.lib")
 #pragma comment(lib, "Ws2_32.lib")
 

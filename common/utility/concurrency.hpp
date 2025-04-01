@@ -40,4 +40,22 @@ namespace Common::Utility::Concurrency {
 		mutable MutexType m_Mutex{};
 		T m_Object{};
 	};
+
+	template <typename T>
+	void AsyncForEach(std::vector<T>& v, std::function<void(T&)> f) {
+		std::mutex mutex;
+		std::vector<std::thread> threads;
+
+		for (auto& e : v) {
+			threads.emplace_back([f, &e] {
+				f(e);
+				});
+		}
+
+		for (auto& t : threads) {
+			if (t.joinable()) {
+				t.join();
+			}
+		}
+	}
 }

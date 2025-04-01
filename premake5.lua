@@ -169,6 +169,7 @@ project "client"
 		["*"] = {}
 	}
 	links {
+		"asmjit",
 		"backward-cpp",
 		"common",
 		"imgui",
@@ -185,6 +186,7 @@ project "client"
 		"vendor/minhook/include/"
 	}
 	defines {
+		"_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR",
 		"NOMINMAX"
 	}
 	prebuildcommands {
@@ -211,6 +213,7 @@ project "common"
 		["*"] = {}
 	}
 	links {
+		"asmjit",
 		"backward-cpp",
 		"imgui",
 		"minhook"
@@ -225,6 +228,7 @@ project "common"
 		"vendor/minhook/include/"
 	}
 	defines {
+		"_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR",
 		"NOMINMAX"
 	}
 	prebuildcommands {
@@ -238,53 +242,6 @@ project "common"
 	targetdir(buildDir)
 	objdir(intBuildDir)
 
---[[
-project "launcher"
-	location "launcher"
-	kind "ConsoleApp"
-	language "C++"
-	targetname "t9-mod"
-
-	files {
-		"launcher/**.hpp",
-		"launcher/**.cpp",
-		"launcher/resource.h",
-		"launcher/resource.rc",
-		"launcher/resources/**.*"
-	}
-	vpaths {
-		["*"] = {}
-	}
-	links {
-		"backward-cpp",
-		"common",
-		"imgui",
-		"minhook"
-	}
-	dependson {
-		"client"
-	}
-	includedirs {
-		"launcher/",
-		"common/",
-		"vendor/asmjit/src/",
-		"vendor/backward-cpp/",
-		"vendor/gsl/include/",
-		"vendor/imgui/",
-		"vendor/json/single_include/",
-		"vendor/minhook/include/"
-	}
-	defines {
-		"NOMINMAX"
-	}
-	prebuildcommands {
-		"cd .. && .\\tools\\premake\\premake5.exe generate-buildinfo"
-	}
-	
-	targetdir(buildDir)
-	objdir(intBuildDir)
-]]--
-
 group "vendor"
 	-- vendor
 	project "backward-cpp"
@@ -292,10 +249,23 @@ group "vendor"
 		kind "StaticLib"
 		language "C++"
 
-		files { "vendor/%{prj.name}/backward.hpp", "vendor/%{prj.name}/backward.cpp" }
-		vpaths { ["*"] = {} }
-		includedirs { "vendor/%{prj.name}/" }
-		defines { "NOMINMAX" }
+		files {
+			"vendor/%{prj.name}/backward.hpp",
+			"vendor/%{prj.name}/backward.cpp"
+		}
+		vpaths {
+			["*"] = {}
+		}
+		includedirs {
+			"vendor/%{prj.name}/"
+		}
+		defines {
+			"_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR",
+			"NOMINMAX"
+		}
+		disablewarnings {
+			"4996"	-- C4996: This function or variable may be unsafe. Consider using [...] instead.
+		}
 
 		targetdir(buildDir)
 		objdir(intBuildDir)
@@ -312,8 +282,15 @@ group "vendor"
 			"vendor/%{prj.name}/backends/imgui_impl_win32.h",
 			"vendor/%{prj.name}/backends/imgui_impl_win32.cpp"
 		}
-		vpaths { ["*"] = {} }
-		includedirs { "vendor/%{prj.name}/" }
+		vpaths {
+			["*"] = {}
+		}
+		includedirs {
+			"vendor/%{prj.name}/"
+		}
+		defines {
+			"_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR"
+		}
 
 		targetdir(buildDir)
 		objdir(intBuildDir)
@@ -326,10 +303,18 @@ group "vendor"
 			"vendor/%{prj.name}/src/**.h",
 			"vendor/%{prj.name}/src/**.cpp"
 		}
-		vpaths { ["*"] = {} }
-		includedirs { "vendor/%{prj.name}/src/" }
+		vpaths {
+			["*"] = {}
+		}
+		includedirs {
+			"vendor/%{prj.name}/src/"
+		}
 		defines {
+			"_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR",
 			"ASMJIT_STATIC"
+		}
+		disablewarnings {
+			"5054"	-- C5054: operator '==': deprecated between enumerations of different types
 		}
 
 		targetdir(buildDir)
@@ -339,9 +324,15 @@ group "vendor"
 		kind "StaticLib"
 		language "C++"
 
-		files { "vendor/%{prj.name}/single_include/**.hpp" }
-		vpaths { ["*"] = {} }
-		includedirs { "vendor/%{prj.name}/single_include/" }
+		files {
+			"vendor/%{prj.name}/single_include/**.hpp"
+		}
+		vpaths {
+			["*"] = {}
+		}
+		includedirs {
+			"vendor/%{prj.name}/single_include/"
+		}
 
 		targetdir(buildDir)
 		objdir(intBuildDir)
@@ -355,10 +346,24 @@ group "vendor"
 			"vendor/%{prj.name}/src/**.h",
 			"vendor/%{prj.name}/src/**.c"
 		}
-		vpaths { ["*"] = {} }
+		vpaths {
+			["*"] = {}
+		}
 		includedirs {
 			"vendor/%{prj.name}/include/",
 			"vendor/%{prj.name}/src/"
+		}
+		defines {
+			"_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR"
+		}
+		disablewarnings {
+			"4100",	-- C4100: '[...]': unreferenced formal parameter
+			"4201",	-- C4201: nonstandard extension used: nameless struct/union
+			"4206",	-- C4206: nonstandard extension used: translation unit is empty
+			"4244",	-- C4244: '=': conversion from '[...]' to '[...]', possible loss of data
+			"4310",	-- C4310: cast truncates constant value
+			"4701",	-- C4701: potentially uninitialized local variable '[...]' used
+			"4706"	-- C4706: assignment within conditional expression
 		}
 
 		targetdir(buildDir)

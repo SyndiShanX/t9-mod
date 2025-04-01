@@ -28,7 +28,6 @@ namespace Common {
 
 			g_Console.Write(std::format(ANSI_FG_CYAN "{} " ANSI_RESET "{}[{}{}] " ANSI_RESET ANSI_FG_RGB(0, 163, 163) "({}) " ANSI_RESET "{}" ANSI_RESET,
 				consoleTimestamp, level.GetAnsiColor(), caller.compare("<unknown module>") ? (caller + "/").c_str() : "", level.GetLabel(), this->m_LogName, message));
-			g_Console.Write("\n");
 		}
 	private:
 		std::string m_LogName{};

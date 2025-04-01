@@ -5,9 +5,6 @@
 #include "memory/minhook.hpp"
 #include "game/function_types.hpp"
 
-LONG WINAPI TopLevelExceptionFilter(EXCEPTION_POINTERS* inf);
-inline std::uintptr_t g_OriginalTestPtr = 0;
-
 namespace Client {
 	namespace Hook {
 		class Hooks {
@@ -21,6 +18,11 @@ namespace Client {
 			using HK_RtlDispatchException = HookPlate::FastcallHook<"RtlDispatchException", bool,
 				PEXCEPTION_RECORD, PCONTEXT>;
 			Memory::MinHook<Game::Functions::RtlDispatchExceptionT>* m_RtlDispatchExceptionHK;
+
+			// Regular game hooks
+			using HK_BB_Alert = HookPlate::FastcallHook<"BB_Alert", void,
+				const char*, const char*>;
+			Memory::MinHook<Game::Functions::BB_AlertT>* m_BB_AlertHK;
 
 			// ?????? hooks
 			using HK_CreateMutexExA = HookPlate::StdcallHook<"CreateMutexExA", HANDLE,
@@ -41,6 +43,8 @@ namespace Client {
 
 			explicit Hooks();
 			~Hooks();
+
+			void PostArxanDetectionHooks();
 
 			template <typename T>
 			void DeleteHook(Memory::MinHook<T>** hook, std::vector<int> indexes = {}) {

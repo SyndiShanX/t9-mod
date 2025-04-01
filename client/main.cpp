@@ -1,4 +1,7 @@
 #include "common.hpp"
+#include "arxan/sys_calls.hpp"
+#include "arxan/sys_hooks.hpp"
+#include "arxan/ntdll_restore.hpp"
 #include "game/game.hpp"
 #include "hooks/hook.hpp"
 #include <utility/nt.hpp>
@@ -7,13 +10,26 @@ BOOL APIENTRY DllMain(HMODULE hMod, DWORD reason, PVOID) {
 	using namespace Client;
 	if (reason == DLL_PROCESS_ATTACH) {
 		DisableThreadLibraryCalls(hMod);
+		static Common::Utility::NT::Library game{};
+
 		g_Module = hMod;
+		std::uint32_t gameChecksum = game.GetChecksum();
+		if (g_GameVersions.contains(gameChecksum)) {
+			g_GameIdentifier = g_GameVersions[gameChecksum];
+		}
+
 		g_MainThread = CreateThread(nullptr, 0, [](PVOID) -> DWORD {
 			Common::g_LogService = std::make_unique<Common::LogService>();
-			g_LaunchInfo = Common::GameLaunchType::GetLaunchInfo();
-			Common::WinAPI::_SetConsoleTitle("t9-mod: "s + GIT_DESCRIBE + " (" + Common::GameLaunchType::GetDisplayName(g_LaunchInfo.first) + ")");
-			Common::Utility::NT::Library().Unprotect();
+			Common::WinAPI::_SetConsoleTitle(std::format("t9-mod: " GIT_DESCRIBE " - Call of Duty: Black Ops Cold War v{}", g_GameIdentifier.m_Version));
+			g_GameModuleName = game.GetName();
+			game.Unprotect();
 			LOG("MainThread", INFO, "T9-Mod injected.");
+
+			Arxan::NtDllRestore::RestoreDebugFunctions();
+			MH_Initialize();
+
+			g_ArxanSysHooks = std::make_unique<Arxan::SysHooks>();
+			LOG("MainThread", INFO, "System hooks initialized.");
 
 			while (g_Running) {
 				// no, we are not planning on unloading the mod, that will cause
@@ -31,6 +47,9 @@ BOOL APIENTRY DllMain(HMODULE hMod, DWORD reason, PVOID) {
 				g_Hooks.reset();
 				LOG("MainThread", INFO, "Hooks uninitialized.");
 			}
+
+			g_ArxanSysHooks.reset();
+			LOG("MainThread", INFO, "System hooks uninitialized.");
 
 			Common::g_LogService.reset();
 			return 0;
@@ -58,16 +77,15 @@ void MainEntryPoint() {
 	LOG("MainThread", INFO, "Hooks initialized.");
 
 	CreateThread(nullptr, 0, [](PVOID) -> DWORD {
-		LOG("Grand Theft Auto VII", DEBUG, "Waiting for Scr_Initialized to be like true or something");
 		while (!(*g_Pointers->m_Scr_Initialized)) {
 			std::this_thread::sleep_for(100ms);
 		}
 
-		LOG("Grand Theft Auto VII", DEBUG, "Scr_Initialized is like true or something now im gonna do some stuff");
 		g_Pointers->m_Dvar_SetBoolFromSource(*g_Pointers->m_Dvar_NoDW, true, 0);
 		g_Pointers->m_CL_Disconnect(0, false, "");
 
-		LOG("Grand Theft Auto VII", DEBUG, "Did some stuff, vaporizing now.");
+		LOG("AuthPatcher", DEBUG, "Patched auth, game version {}", g_GameIdentifier.m_Version);
+
 		return 0;
 	}, nullptr, 0, nullptr);
 }

@@ -153,6 +153,24 @@ namespace Common::Utility::NT {
 		return this->m_Module;
 	}
 
+	std::vector<Library::TlsCallback*> Library::GetTlsCallbacks() {
+		std::vector<TlsCallback*> callbacks{};
+		DWORD virtualAddr = this->GetOptionalHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress;
+
+		if (virtualAddr == 0) {
+			return callbacks;
+		}
+
+		PIMAGE_TLS_DIRECTORY tlsDir = reinterpret_cast<PIMAGE_TLS_DIRECTORY>(this->GetPtr() + virtualAddr);
+		TlsCallback** current = reinterpret_cast<TlsCallback**>(tlsDir->AddressOfCallBacks);
+		while (*current != nullptr) {
+			callbacks.push_back(*current);
+			current = reinterpret_cast<TlsCallback**>(reinterpret_cast<std::uintptr_t>(current) + sizeof(std::uintptr_t));
+		}
+
+		return callbacks;
+	}
+
 	void** Library::GetIATEntry(const std::string& moduleName, const std::string& procName) const {
 		return this->GetIATEntry(moduleName, procName.data());
 	}
@@ -182,10 +200,8 @@ namespace Common::Utility::NT {
 
 		while (importDescriptor->Name) {
 			if (!_stricmp(reinterpret_cast<char*>(this->GetPtr() + importDescriptor->Name), moduleName.data())) {
-				auto* originalThunkData = reinterpret_cast<PIMAGE_THUNK_DATA>(importDescriptor->
-					OriginalFirstThunk + this->GetPtr());
-				auto* thunkData = reinterpret_cast<PIMAGE_THUNK_DATA>(importDescriptor->FirstThunk + this->
-					GetPtr());
+				auto* originalThunkData = reinterpret_cast<PIMAGE_THUNK_DATA>(importDescriptor->OriginalFirstThunk + this->GetPtr());
+				auto* thunkData = reinterpret_cast<PIMAGE_THUNK_DATA>(importDescriptor->FirstThunk + this->GetPtr());
 
 				while (originalThunkData->u1.AddressOfData) {
 					if (thunkData->u1.Function == reinterpret_cast<uint64_t>(targetFunction)) {
@@ -221,6 +237,21 @@ namespace Common::Utility::NT {
 
 		return address >= reinterpret_cast<std::size_t>(this->GetPtr())
 			&& address <= reinterpret_cast<std::size_t>(this->GetPtr()) + this->GetOptionalHeader()->SizeOfImage;
+	}
+
+	std::uint32_t Library::GetChecksum() {
+		std::ifstream file(this->GetPath(), std::ios::binary);
+		if (!file.is_open()) {
+			return 0;
+		}
+
+		uint32_t checksum = 0;
+		char byte;
+		while (file.get(byte)) {
+			checksum += static_cast<uint8_t>(byte);
+		}
+
+		return checksum;
 	}
 
 	void RaiseHardException() {

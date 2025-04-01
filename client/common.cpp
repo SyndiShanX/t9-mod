@@ -71,3 +71,10 @@ bool Client::RemoveEvilKeywordsFromString(char* str, const size_t length) {
 	return true;
 }
 
+std::string Client::AndRel(std::uintptr_t address) {
+	Common::Utility::NT::Library assignedLib = Common::Utility::NT::Library::GetByAddress(reinterpret_cast<void*>(address));
+	if (assignedLib) {
+		return std::format("0x{:016X} ({}+0x{:016X})", address, assignedLib.GetName(), address - reinterpret_cast<std::uintptr_t>(assignedLib.GetPtr()));
+	}
+	return std::format("0x{:016X}", address);
+}
