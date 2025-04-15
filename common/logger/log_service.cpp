@@ -6,7 +6,7 @@ namespace Common {
 	LogService::LogService() {
 		AllocConsole();
 		freopen_s((FILE**)(stdout), "CONOUT$", "w", stdout);
-		SetConsoleTitleA("t6-mod");
+		SetConsoleTitleA("t9-mod");
 		SetConsoleOutputCP(CP_UTF8);
 
 		Utility::EnsureVTL();

@@ -9,7 +9,7 @@ void Client::Hook::Hooks::HK_BB_Alert::hkCallback(const char* type, const char* 
 		msgPatched += "\n";
 		msgPatched += "This is ^1not^7 an error message.\n";
 		msgPatched += "\n";
-		msgPatched += "Anyway, welcome to Black Ops Cold War! LAN play doesn't work as of right now, so you're stuck on you're own.\n";
+		msgPatched += "Anyway, welcome to Black Ops Cold War! LAN play doesn't work as of right now, so you're stuck on your own.\n";
 		msgPatched += "\n";
 		msgPatched += "- ^1xifil\n";
 
